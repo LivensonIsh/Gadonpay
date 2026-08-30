@@ -1,0 +1,294 @@
+// GadonPay — Schéma de données
+// Aligné sur la spécification technique v1.0, section 15.2
+// Principe : GadonPay ne détient jamais de fonds. Ce schéma ne contient donc
+// aucune notion de solde/balance/settlement détenu par la plateforme — voir
+// "LogEntry" (journal d'audit append-only) au lieu d'un ledger financier.
+
+generator client {
+  provider      = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────
+// Départements d'Haïti — liste fermée, utilisée à l'inscription (section 11.1)
+// ─────────────────────────────────────────────────────────
+enum Department {
+  ARTIBONITE
+  CENTRE
+  GRAND_ANSE
+  NIPPES
+  NORD
+  NORD_EST
+  NORD_OUEST
+  OUEST
+  SUD
+  SUD_EST
+}
+
+enum MerchantStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum Provider {
+  NATCASH
+  MONCASH
+}
+
+enum GatewayType {
+  ANDROID
+  HARDWARE
+}
+
+enum GatewayStatus {
+  PENDING_ACTIVATION
+  ONLINE
+  OFFLINE
+}
+
+// Type de message SMS détecté — la classification stricte évite qu'un OTP
+// ou une alerte de solde soit traité comme un paiement (voir section 5.2)
+enum TransactionType {
+  INCOMING_TRANSFER
+  DEPOSIT
+  BALANCE_CHECK
+  OTP
+  PROMO
+  FAILED_TRANSACTION
+  UNKNOWN
+}
+
+// FSM des paiements — section 8 de la spec
+enum PaymentStatus {
+  PENDING
+  DETECTED
+  MATCHED
+  VERIFIED
+  PAID
+  EXPIRED
+  FLAGGED
+  FAILED
+}
+
+enum WebhookEventType {
+  PAYMENT_CREATED
+  PAYMENT_DETECTED
+  PAYMENT_PENDING
+  PAYMENT_SUCCEEDED
+  PAYMENT_FAILED
+  PAYMENT_EXPIRED
+}
+
+enum WebhookDeliveryStatus {
+  PENDING
+  DELIVERED
+  FAILED
+}
+
+// ─────────────────────────────────────────────────────────
+// Marchand — champs d'inscription (section 11.1)
+// ─────────────────────────────────────────────────────────
+model Merchant {
+  id              String         @id @default(cuid())
+  name            String
+  email           String         @unique
+  passwordHash    String
+  address         String
+  department      Department
+  phoneNumber     String
+  phoneVerifiedAt DateTime?
+  emailVerificationCodeHash  String?
+  emailVerificationExpiresAt DateTime?
+  phoneVerificationCodeHash  String?
+  phoneVerificationExpiresAt DateTime?
+  emailVerifiedAt DateTime?
+  status          MerchantStatus @default(ACTIVE)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  projects Project[]
+
+  @@map("merchants")
+}
+
+model Project {
+  id                String   @id @default(cuid())
+  merchantId        String
+  name              String
+  apiKeyHash        String   @unique
+  apiKeyPrefix      String // affiché dans le dashboard pour identifier la clé sans la révéler
+  webhookSecretEncrypted String // chiffré (AES-256-GCM), déchiffré uniquement pour signer un envoi sortant
+  createdAt         DateTime @default(now())
+
+  merchant         Merchant          @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  providerAccounts ProviderAccount[]
+  gateways         Gateway[]
+  payments         Payment[]
+  webhooks         Webhook[]
+  logEntries       LogEntry[]
+
+  @@map("projects")
+}
+
+// Numéro NatCash/MonCash du marchand — celui qui reçoit réellement l'argent
+// (jamais un compte détenu par GadonPay, voir positionnement section 2)
+model ProviderAccount {
+  id        String   @id @default(cuid())
+  projectId String
+  provider  Provider
+  phoneNumber String
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, provider, phoneNumber])
+  @@map("provider_accounts")
+}
+
+// Un Gateway (Android ou matériel) rattaché à un projet — capte les SMS
+// pour NatCash ET MonCash (section 5.1 : même mécanisme pour les deux rails)
+model Gateway {
+  id              String        @id @default(cuid())
+  projectId       String
+  type            GatewayType
+  status          GatewayStatus @default(PENDING_ACTIVATION)
+  tokenHash       String        @unique // authentifie les requêtes d'ingestion SMS
+  lastHeartbeatAt DateTime?
+  createdAt       DateTime      @default(now())
+
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@map("gateways")
+}
+
+// Objet brut normalisé issu d'un SMS (section 5.1 / 5.2)
+// raw_event chiffré conservé pour audit/rejeu même après extraction réussie
+model Transaction {
+  id              String          @id @default(cuid())
+  gatewayId       String
+  provider        Provider
+  transactionId   String // "TransCode" — identifiant unique émis par l'opérateur
+  type            TransactionType
+  amount          Decimal?        @db.Decimal(14, 2)
+  fee             Decimal?        @db.Decimal(14, 2)
+  sender          String?
+  senderPhone     String?
+  receiver        String?
+  balanceAfter    Decimal?        @db.Decimal(14, 2)
+  operatorTimestamp DateTime?
+  rawEventEncrypted String        // SMS brut chiffré (AES-256), jamais en clair en base
+  consumedAt      DateTime? // rempli dès que la transaction sert à valider un Payment (anti-rejeu)
+  createdAt       DateTime        @default(now())
+
+  gateway Gateway  @relation(fields: [gatewayId], references: [id], onDelete: Cascade)
+  payment Payment?
+
+  // Contrainte d'unicité composite — verrou anti-rejeu au niveau DB (section 8)
+  @@unique([provider, transactionId])
+  @@map("transactions")
+}
+
+// Objet exposé côté API (section 6.3), lié à une commande marchand
+model Payment {
+  id             String        @id @default(cuid())
+  projectId      String
+  matchedTransactionId String?  @unique // FK vers Transaction.id, nulle tant que non matché
+  amount         Decimal       @db.Decimal(14, 2)
+  currency       String        @default("HTG")
+  provider       Provider
+  reference      String
+  status         PaymentStatus @default(PENDING)
+  idempotencyKey String
+  expiresAt      DateTime
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  transaction Transaction? @relation(fields: [matchedTransactionId], references: [id])
+  logEntries  LogEntry[]
+  deliveries  WebhookDelivery[]
+
+  @@unique([projectId, idempotencyKey])
+  @@unique([projectId, reference])
+  @@index([status])
+  @@map("payments")
+}
+
+// Journal d'audit append-only — PAS un ledger financier (section 5.4)
+// GadonPay ne détient aucun fonds : ceci trace uniquement des confirmations
+model LogEntry {
+  id        String   @id @default(cuid())
+  projectId String
+  paymentId String?
+  eventType String
+  details   String // JSON sérialisé — jamais modifié après écriture
+  createdAt DateTime @default(now())
+
+  project Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  payment Payment? @relation(fields: [paymentId], references: [id])
+
+  @@map("log_entries")
+}
+
+model Webhook {
+  id        String   @id @default(cuid())
+  projectId String
+  url       String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  project    Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  deliveries WebhookDelivery[]
+
+  @@map("webhooks")
+}
+
+model WebhookDelivery {
+  id           String                @id @default(cuid())
+  webhookId    String
+  paymentId    String
+  eventType    WebhookEventType
+  payload      String // JSON sérialisé envoyé au marchand
+  status       WebhookDeliveryStatus @default(PENDING)
+  attempts     Int                   @default(0)
+  lastAttemptAt DateTime?
+  createdAt    DateTime              @default(now())
+
+  webhook Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@map("webhook_deliveries")
+}
+
+// Compte admin interne GadonPay (dashboard admin, section 7.2)
+// Jamais confondu avec un compte Merchant.
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  auditLogs AdminAuditLog[]
+
+  @@map("admin_users")
+}
+
+model AdminAuditLog {
+  id         String   @id @default(cuid())
+  adminUserId String
+  action     String
+  targetType String
+  targetId   String
+  reason     String?
+  createdAt  DateTime @default(now())
+
+  adminUser AdminUser @relation(fields: [adminUserId], references: [id])
+
+  @@map("admin_audit_logs")
+}
