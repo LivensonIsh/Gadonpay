@@ -1,6 +1,11 @@
+<<<<<<< HEAD
 node_modules/
 dist/
 .env
 *.log
 .DS_Store
 prisma/dev.db
+=======
+gadonpay-backend/
+gadonpay-repo/
+>>>>>>> 443aa36 (Ignore le backend)
