@@ -21,8 +21,25 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GadonPay",
-  description: "Confirmation automatique de transactions NatCash & MonCash",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://gadonpay.lat"),
+  title: {
+    default: "GadonPay — Confirmation automatique NatCash & MonCash",
+    template: "%s — GadonPay",
+  },
+  description:
+    "GadonPay confirme automatiquement vos paiements NatCash et MonCash et déclenche vos livraisons, abonnements ou crédits — sans jamais détenir vos fonds.",
+  openGraph: {
+    type: "website",
+    locale: "fr_HT",
+    siteName: "GadonPay",
+    title: "GadonPay — Confirmation automatique NatCash & MonCash",
+    description:
+      "Le client paie directement votre portefeuille NatCash/MonCash. GadonPay détecte, vérifie, et déclenche l'action automatiquement.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "GadonPay — Confirmation automatique NatCash & MonCash",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

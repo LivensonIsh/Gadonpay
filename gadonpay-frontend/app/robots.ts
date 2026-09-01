@@ -1,11 +1,14 @@
 import type { MetadataRoute } from "next";
 
-// Le dashboard est une application privée authentifiée — jamais indexée.
+// Seules les zones privées (dashboard marchand + admin) sont bloquées.
+// La landing page, /login et /register restent indexables.
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: "*",
-      disallow: "/",
+      allow: "/",
+      disallow: ["/dashboard/", "/admin/"],
     },
+    sitemap: `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://gadonpay.lat"}/sitemap.xml`,
   };
 }
