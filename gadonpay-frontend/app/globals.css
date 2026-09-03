@@ -25,3 +25,7 @@ body {
 .ledger-row:last-child {
   border-bottom: none;
 }
+
+html {
+  scroll-behavior: smooth;
+}
