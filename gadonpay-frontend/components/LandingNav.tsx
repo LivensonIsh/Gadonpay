@@ -51,7 +51,10 @@ export function LandingNav() {
           ))}
         </nav>
         <div className="flex items-center gap-4">
-          <Link href="/login" className="hidden text-sm text-muted hover:text-text sm:block">
+         <Link href="/developers" className="hidden text-sm text-muted hover:text-text sm:block">
+            Développeurs
+          </Link>
+           <Link href="/login" className="hidden text-sm text-muted hover:text-text sm:block">
             Se connecter
           </Link>
           <Link href="/register">
