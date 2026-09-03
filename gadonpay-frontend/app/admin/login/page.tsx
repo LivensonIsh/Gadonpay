@@ -6,6 +6,7 @@ import { apiRequest, ApiError } from "@/lib/api";
 import { saveAdminSession } from "@/lib/adminAuth";
 import { Input } from "@/components/Input";
 import { Button } from "@/components/Button";
+import { Logo } from "@/components/Logo";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -35,8 +36,10 @@ export default function AdminLoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-bg px-4">
       <div className="w-full max-w-sm">
-        <h1 className="mb-1 font-display text-2xl text-text">GadonPay</h1>
-        <p className="mb-8 text-sm text-rose">Accès administrateur interne</p>
+        <div className="mb-8">
+          <Logo />
+          <p className="mt-2 text-sm text-rose">Accès administrateur interne</p>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input label="Email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />

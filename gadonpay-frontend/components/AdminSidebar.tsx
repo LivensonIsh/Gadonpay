@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { clearAdminSession } from "@/lib/adminAuth";
+import { Logo } from "@/components/Logo";
 
 export function AdminSidebar() {
   const pathname = usePathname();
@@ -27,7 +28,7 @@ export function AdminSidebar() {
     <>
       <div className="flex items-center justify-between border-b border-border bg-surface px-4 py-3 md:hidden">
         <div className="flex items-center gap-2">
-          <span className="font-display text-base text-text">GadonPay</span>
+          <Logo size="small" />
           <span className="rounded border border-rose/30 bg-rose-dim px-1.5 py-0.5 text-[10px] text-rose">
             ADMIN
           </span>
@@ -51,9 +52,9 @@ export function AdminSidebar() {
         }`}
       >
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <div>
-            <span className="font-display text-lg text-text">GadonPay</span>
-            <span className="ml-2 rounded border border-rose/30 bg-rose-dim px-1.5 py-0.5 text-[10px] text-rose">
+          <div className="flex items-center gap-2">
+            <Logo />
+            <span className="rounded border border-rose/30 bg-rose-dim px-1.5 py-0.5 text-[10px] text-rose">
               ADMIN
             </span>
           </div>

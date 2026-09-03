@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { apiRequest, ApiError } from "@/lib/api";
 import { Input, Select } from "@/components/Input";
 import { Button } from "@/components/Button";
+import { Logo } from "@/components/Logo";
 import { DEPARTMENT_LABELS, type Department } from "@/lib/types";
 
 const initialForm = {

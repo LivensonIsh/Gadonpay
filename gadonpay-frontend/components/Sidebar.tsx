@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { clearMerchantSession, getStoredMerchant } from "@/lib/auth";
+import { Logo } from "@/components/Logo";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -21,7 +22,7 @@ export function Sidebar() {
   return (
     <>
       <div className="flex items-center justify-between border-b border-border bg-surface px-4 py-3 md:hidden">
-        <span className="font-display text-base text-text">GadonPay</span>
+        <Logo size="small" />
         <button
           onClick={() => setOpen(true)}
           aria-label="Ouvrir le menu"
@@ -41,7 +42,7 @@ export function Sidebar() {
         }`}
       >
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <span className="font-display text-lg text-text">GadonPay</span>
+          <Logo />
           <button onClick={() => setOpen(false)} className="text-faint md:hidden" aria-label="Fermer le menu">
             ✕
           </button>

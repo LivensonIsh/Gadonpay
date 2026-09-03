@@ -7,6 +7,7 @@ import { apiRequest, ApiError } from "@/lib/api";
 import { saveMerchantSession } from "@/lib/auth";
 import { Input } from "@/components/Input";
 import { Button } from "@/components/Button";
+import { Logo } from "@/components/Logo";
 import type { Merchant } from "@/lib/types";
 
 export default function LoginPage() {
@@ -37,8 +38,10 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-bg px-4">
       <div className="w-full max-w-sm">
-        <h1 className="mb-1 font-display text-2xl text-text">GadonPay</h1>
-        <p className="mb-8 text-sm text-muted">Connexion marchand</p>
+        <div className="mb-8">
+          <Logo />
+          <p className="mt-2 text-sm text-muted">Connexion marchand</p>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
