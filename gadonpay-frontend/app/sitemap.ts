@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gadonpay.lat"\;
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gadonpay.lat";
 
 // Uniquement les pages publiques — le dashboard n'a rien à faire dans un sitemap.
 export default function sitemap(): MetadataRoute.Sitemap {
