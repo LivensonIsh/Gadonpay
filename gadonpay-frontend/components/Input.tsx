@@ -21,7 +21,9 @@ export function FieldWrapper({ label, error, children }: FieldWrapperProps) {
 const inputClass =
   "w-full rounded border border-border bg-surface px-3 py-2 text-sm text-text placeholder:text-faint focus:border-amber focus:outline-none";
 
-export function Input({ label, error, ...props }: InputHTMLAttributes<HTMLInputElement> & FieldWrapperProps) {
+type FieldLabelProps = Pick<FieldWrapperProps, "label" | "error">;
+
+export function Input({ label, error, ...props }: InputHTMLAttributes<HTMLInputElement> & FieldLabelProps) {
   return (
     <FieldWrapper label={label} error={error}>
       <input className={inputClass} {...props} />
@@ -34,7 +36,7 @@ export function Select({
   error,
   children,
   ...props
-}: SelectHTMLAttributes<HTMLSelectElement> & FieldWrapperProps) {
+}: SelectHTMLAttributes<HTMLSelectElement> & FieldLabelProps & { children: React.ReactNode }) {
   return (
     <FieldWrapper label={label} error={error}>
       <select className={inputClass} {...props}>
