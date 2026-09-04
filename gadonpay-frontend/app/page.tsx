@@ -208,11 +208,19 @@ export default function LandingPage() {
       </section>
 
       <footer className="border-t border-border py-10">
-        <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-6 text-center sm:flex-row sm:justify-between sm:text-left">
-          <Logo size="small" />
-          <p className="text-xs text-faint">© {new Date().getFullYear()} GadonPay — Haïti</p>
-        </div>
-      </footer>
+  <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-6 text-center sm:flex-row sm:justify-between sm:text-left">
+    <Logo size="small" />
+    <div className="flex flex-col items-center gap-3 sm:flex-row sm:gap-6">
+      <Link href="/terms" className="text-xs text-faint hover:text-muted">
+        Conditions d'utilisation
+      </Link>
+      <Link href="/privacy" className="text-xs text-faint hover:text-muted">
+        Politique de confidentialité
+      </Link>
+      <p className="text-xs text-faint">© {new Date().getFullYear()} GadonPay — Haïti</p>
+    </div>
+  </div>
+</footer>
     </div>
   );
 }

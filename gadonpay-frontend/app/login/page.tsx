@@ -72,11 +72,6 @@ export default function LoginPage() {
             Créer un compte
           </Link>
         </p>
-        <p className="mt-2 text-center text-xs text-faint">
-          <Link href="/admin/login" className="hover:text-muted">
-            Accès admin →
-          </Link>
-        </p>
       </div>
     </div>
   );
