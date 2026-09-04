@@ -1,7 +1,14 @@
 import { Router } from "express";
 import { z } from "zod";
 import { merchantAuth, MerchantAuthedRequest } from "../../middleware/merchantAuth";
-import { createProject, listProjects, assertProjectOwnership } from "./projects.service";
+import {
+  createProject,
+  listProjects,
+  assertProjectOwnership,
+  renameProject,
+  regenerateApiKey,
+  regenerateWebhookSecret,
+} from "./projects.service";
 import { listPayments } from "../payments/payments.service";
 import { prisma } from "../../lib/prisma";
 
@@ -19,8 +26,7 @@ projectsRouter.post("/", async (req: MerchantAuthedRequest, res, next) => {
     res.status(201).json({
       ok: true,
       project,
-      warning:
-        "Copiez l'api_key et le webhook_secret maintenant : ils ne seront plus jamais affichés en clair.",
+      warning: "Copiez l'api_key et le webhook_secret maintenant : ils ne seront plus jamais affichés en clair.",
     });
   } catch (err) {
     next(err);
@@ -47,6 +53,42 @@ projectsRouter.get("/:id", async (req: MerchantAuthedRequest, res, next) => {
         apiKeyPrefix: project.apiKeyPrefix,
         createdAt: project.createdAt,
       },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+projectsRouter.patch("/:id", async (req: MerchantAuthedRequest, res, next) => {
+  try {
+    const { name } = z.object({ name: z.string().trim().min(2).max(120) }).parse(req.body);
+    const project = await renameProject(req.params.id, req.merchantId!, name);
+    res.json({ ok: true, project });
+  } catch (err) {
+    next(err);
+  }
+});
+
+projectsRouter.post("/:id/regenerate-api-key", async (req: MerchantAuthedRequest, res, next) => {
+  try {
+    const apiKey = await regenerateApiKey(req.params.id, req.merchantId!);
+    res.json({
+      ok: true,
+      apiKey,
+      warning: "Copiez cette clé maintenant : elle ne sera plus jamais affichée. L'ancienne clé est déjà révoquée.",
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+projectsRouter.post("/:id/regenerate-webhook-secret", async (req: MerchantAuthedRequest, res, next) => {
+  try {
+    const webhookSecret = await regenerateWebhookSecret(req.params.id, req.merchantId!);
+    res.json({
+      ok: true,
+      webhookSecret,
+      warning: "Copiez ce secret maintenant : il ne sera plus jamais affiché. L'ancien secret est déjà révoqué.",
     });
   } catch (err) {
     next(err);

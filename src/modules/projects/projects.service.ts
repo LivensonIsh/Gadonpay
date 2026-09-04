@@ -1,13 +1,6 @@
 import { prisma } from "../../lib/prisma";
 import { generateSecretKey, sha256, encryptRawEvent } from "../../utils/crypto";
 
-/**
- * Crée un projet et génère ses identifiants d'intégration.
- * IMPORTANT : la clé API et le webhook secret en clair ne sont retournés
- * qu'une seule fois, à la création — jamais récupérables ensuite (section 6.1
- * et 6.6 de la checklist PAYNEX, reprise ici : "conservez cette clé uniquement
- * sur votre serveur").
- */
 export async function createProject(merchantId: string, name: string) {
   const apiKey = generateSecretKey("gp_live");
   const webhookSecret = generateSecretKey("whsec");
@@ -25,7 +18,7 @@ export async function createProject(merchantId: string, name: string) {
   return {
     id: project.id,
     name: project.name,
-    apiKey, // affiché une seule fois — le frontend doit avertir l'utilisateur de le copier maintenant
+    apiKey,
     webhookSecret,
     createdAt: project.createdAt,
   };
@@ -40,7 +33,6 @@ export async function listProjects(merchantId: string) {
   return projects;
 }
 
-/** Vérifie qu'un projet appartient bien au marchand authentifié — sécurité multi-tenant de base. */
 export async function assertProjectOwnership(projectId: string, merchantId: string) {
   const project = await prisma.project.findFirst({ where: { id: projectId, merchantId } });
   if (!project) {
@@ -49,4 +41,30 @@ export async function assertProjectOwnership(projectId: string, merchantId: stri
     throw err;
   }
   return project;
+}
+
+export async function renameProject(projectId: string, merchantId: string, name: string) {
+  await assertProjectOwnership(projectId, merchantId);
+  const project = await prisma.project.update({ where: { id: projectId }, data: { name } });
+  return { id: project.id, name: project.name };
+}
+
+export async function regenerateApiKey(projectId: string, merchantId: string) {
+  await assertProjectOwnership(projectId, merchantId);
+  const apiKey = generateSecretKey("gp_live");
+  await prisma.project.update({
+    where: { id: projectId },
+    data: { apiKeyHash: sha256(apiKey), apiKeyPrefix: apiKey.slice(0, 12) },
+  });
+  return apiKey;
+}
+
+export async function regenerateWebhookSecret(projectId: string, merchantId: string) {
+  await assertProjectOwnership(projectId, merchantId);
+  const webhookSecret = generateSecretKey("whsec");
+  await prisma.project.update({
+    where: { id: projectId },
+    data: { webhookSecretEncrypted: encryptRawEvent(webhookSecret) },
+  });
+  return webhookSecret;
 }
