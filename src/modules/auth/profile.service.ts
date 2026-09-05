@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import { Department } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { AuthError } from "./auth.service";
 
@@ -18,7 +19,10 @@ export async function getProfile(merchantId: string) {
   };
 }
 
-export async function updateProfile(merchantId: string, data: { name?: string; address?: string; department?: string; phoneNumber?: string }) {
+export async function updateProfile(
+  merchantId: string,
+  data: { name?: string; address?: string; department?: Department; phoneNumber?: string }
+) {
   await prisma.merchant.update({ where: { id: merchantId }, data });
   return getProfile(merchantId);
 }
