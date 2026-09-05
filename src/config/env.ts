@@ -15,6 +15,7 @@ const envSchema = z.object({
   WEBHOOK_TIMEOUT_MS: z.coerce.number().default(8000),
   RESEND_API_KEY: z.string().optional(),
   RESEND_FROM_EMAIL: z.string().default("GadonPay <onboarding@resend.dev>"),
+  FRONTEND_URL: z.string().default("https://gadonpay.lat"),
 });
 
 const parsed = envSchema.safeParse(process.env);

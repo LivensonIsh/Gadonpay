@@ -81,3 +81,13 @@ export async function ingestSms(input: IngestSmsInput) {
 
   return transaction;
 }
+
+/** Révoque l'ancien token immédiatement — utile en cas de perte/compromission de l'appareil Gateway. */
+export async function regenerateGatewayToken(gatewayId: string) {
+  const token = generateSecretKey("gwtok");
+  await prisma.gateway.update({
+    where: { id: gatewayId },
+    data: { tokenHash: sha256(token), status: "PENDING_ACTIVATION" },
+  });
+  return token;
+}

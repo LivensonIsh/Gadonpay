@@ -17,6 +17,9 @@ import { adminRouter } from "./modules/admin/admin.routes";
 export function createApp() {
   const app = express();
 
+  // Nécessaire derrière nginx : sans ça, express-rate-limit plante sur X-Forwarded-For
+  app.set("trust proxy", 1);
+
   app.use(helmet());
   app.use(cors());
   app.use(express.json({ limit: "256kb" }));

@@ -3,11 +3,11 @@ import { z } from "zod";
 import { merchantAuth, MerchantAuthedRequest } from "../../middleware/merchantAuth";
 import { gatewayAuth, GatewayAuthedRequest } from "../../middleware/gatewayAuth";
 import { assertProjectOwnership } from "../projects/projects.service";
-import { registerGateway, listGateways, ingestSms } from "./gateways.service";
+import { prisma } from "../../lib/prisma";
+import { registerGateway, listGateways, ingestSms, regenerateGatewayToken } from "./gateways.service";
 
 export const gatewaysRouter = Router();
 
-// ── Gestion du Gateway côté dashboard marchand (JWT) ──────────────────────
 const registerSchema = z.object({
   projectId: z.string().min(1),
   type: z.enum(["ANDROID", "HARDWARE"]),
@@ -18,11 +18,7 @@ gatewaysRouter.post("/", merchantAuth, async (req: MerchantAuthedRequest, res, n
     const input = registerSchema.parse(req.body);
     await assertProjectOwnership(input.projectId, req.merchantId!);
     const gateway = await registerGateway(input.projectId, input.type);
-    res.status(201).json({
-      ok: true,
-      gateway,
-      warning: "Copiez le token maintenant : à saisir dans la config du composant SMS-to-HTTP.",
-    });
+    res.status(201).json({ ok: true, gateway, warning: "Copiez le token maintenant." });
   } catch (err) {
     next(err);
   }
@@ -39,7 +35,18 @@ gatewaysRouter.get("/", merchantAuth, async (req: MerchantAuthedRequest, res, ne
   }
 });
 
-// ── Ingestion des SMS bruts (auth par token Gateway, pas JWT marchand) ────
+gatewaysRouter.post("/:id/regenerate-token", merchantAuth, async (req: MerchantAuthedRequest, res, next) => {
+  try {
+    const gateway = await prisma.gateway.findUnique({ where: { id: req.params.id } });
+    if (!gateway) return res.status(404).json({ ok: false, error: "NOT_FOUND" });
+    await assertProjectOwnership(gateway.projectId, req.merchantId!);
+    const token = await regenerateGatewayToken(gateway.id);
+    res.json({ ok: true, token, warning: "L'ancien token est révoqué. Reconfigurez votre app SMS-to-HTTP." });
+  } catch (err) {
+    next(err);
+  }
+});
+
 const ingestSchema = z.object({
   provider: z.enum(["NATCASH", "MONCASH"]),
   rawText: z.string().min(1).max(2000),
@@ -55,15 +62,12 @@ gatewaysRouter.post("/ingest", gatewayAuth, async (req: GatewayAuthedRequest, re
       rawText: input.rawText,
       receivedAt: input.receivedAt,
     });
-    // On ne renvoie jamais le contenu brut du SMS dans la réponse — seulement
-    // ce qui est nécessaire pour que le Gateway confirme la réception.
     res.status(201).json({ ok: true, transaction: { id: transaction.id, type: transaction.type } });
   } catch (err) {
     next(err);
   }
 });
 
-// Heartbeat simple, utile même sans SMS à transmettre (statut "en ligne" du Gateway)
 gatewaysRouter.post("/heartbeat", gatewayAuth, async (_req: GatewayAuthedRequest, res) => {
   res.json({ ok: true });
 });

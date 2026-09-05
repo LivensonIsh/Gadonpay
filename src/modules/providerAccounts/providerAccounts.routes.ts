@@ -13,20 +13,18 @@ const createSchema = z.object({
   phoneNumber: z.string().regex(/^(509)?[0-9]{8}$/, "Numéro invalide"),
 });
 
-// Le numéro NatCash/MonCash qui reçoit réellement l'argent (jamais un compte
-// détenu par GadonPay — voir positionnement, section 2 de la spec).
+function normalizePhone(phoneNumber: string) {
+  const digits = phoneNumber.replace(/\D/g, "");
+  return digits.startsWith("509") ? digits : `509${digits}`;
+}
+
 providerAccountsRouter.post("/", async (req: MerchantAuthedRequest, res, next) => {
   try {
     const input = createSchema.parse(req.body);
     await assertProjectOwnership(input.projectId, req.merchantId!);
-
-    const digits = input.phoneNumber.replace(/\D/g, "");
-    const normalized = digits.startsWith("509") ? digits : `509${digits}`;
-
     const account = await prisma.providerAccount.create({
-      data: { projectId: input.projectId, provider: input.provider, phoneNumber: normalized },
+      data: { projectId: input.projectId, provider: input.provider, phoneNumber: normalizePhone(input.phoneNumber) },
     });
-
     res.status(201).json({ ok: true, account });
   } catch (err) {
     next(err);
@@ -39,6 +37,36 @@ providerAccountsRouter.get("/", async (req: MerchantAuthedRequest, res, next) =>
     await assertProjectOwnership(projectId, req.merchantId!);
     const accounts = await prisma.providerAccount.findMany({ where: { projectId } });
     res.json({ ok: true, accounts });
+  } catch (err) {
+    next(err);
+  }
+});
+
+providerAccountsRouter.patch("/:id", async (req: MerchantAuthedRequest, res, next) => {
+  try {
+    const { phoneNumber } = z
+      .object({ phoneNumber: z.string().regex(/^(509)?[0-9]{8}$/, "Numéro invalide") })
+      .parse(req.body);
+    const existing = await prisma.providerAccount.findUnique({ where: { id: req.params.id } });
+    if (!existing) return res.status(404).json({ ok: false, error: "NOT_FOUND" });
+    await assertProjectOwnership(existing.projectId, req.merchantId!);
+    const account = await prisma.providerAccount.update({
+      where: { id: req.params.id },
+      data: { phoneNumber: normalizePhone(phoneNumber) },
+    });
+    res.json({ ok: true, account });
+  } catch (err) {
+    next(err);
+  }
+});
+
+providerAccountsRouter.delete("/:id", async (req: MerchantAuthedRequest, res, next) => {
+  try {
+    const existing = await prisma.providerAccount.findUnique({ where: { id: req.params.id } });
+    if (!existing) return res.status(404).json({ ok: false, error: "NOT_FOUND" });
+    await assertProjectOwnership(existing.projectId, req.merchantId!);
+    await prisma.providerAccount.delete({ where: { id: req.params.id } });
+    res.json({ ok: true });
   } catch (err) {
     next(err);
   }

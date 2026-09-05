@@ -106,6 +106,8 @@ model Merchant {
   emailVerificationExpiresAt DateTime?
   phoneVerificationCodeHash  String?
   phoneVerificationExpiresAt DateTime?
+  passwordResetTokenHash     String?
+  passwordResetExpiresAt     DateTime?
   emailVerifiedAt DateTime?
   status          MerchantStatus @default(ACTIVE)
   createdAt       DateTime       @default(now())
@@ -117,6 +119,7 @@ model Merchant {
 }
 
 model Project {
+  displayNumber     Int      @unique @default(autoincrement()) // numéro affiché au marchand
   id                String   @id @default(cuid())
   merchantId        String
   name              String
