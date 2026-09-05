@@ -12,8 +12,10 @@ export function Sidebar() {
   const merchant = getStoredMerchant();
   const [open, setOpen] = useState(false);
 
-  const links = [{ href: "/dashboard/projects", label: "Projets" }];
-
+  const links = [
+  { href: "/dashboard/projects", label: "Projets" },
+  { href: "/dashboard/account", label: "Mon compte" },
+];
   function handleLogout() {
     clearMerchantSession();
     router.replace("/login");

@@ -37,6 +37,7 @@ export type PaymentStatus =
 
 export interface Merchant {
   id: string;
+  displayNumber: number;
   name: string;
   email: string;
   address: string;

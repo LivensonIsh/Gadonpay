@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { apiRequest, ApiError } from "@/lib/api";
 import { saveMerchantSession } from "@/lib/auth";
 import { Input } from "@/components/Input";
+import { PasswordInput } from "@/components/PasswordInput";
 import { Button } from "@/components/Button";
 import { Logo } from "@/components/Logo";
 import type { Merchant } from "@/lib/types";
@@ -44,23 +45,14 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Input
-            label="Email"
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <Input
-            label="Mot de passe"
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-
+          <Input label="Email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+          <div>
+            <PasswordInput label="Mot de passe" required value={password} onChange={(e) => setPassword(e.target.value)} />
+            <Link href="/forgot-password" className="mt-1.5 inline-block text-xs text-teal hover:underline">
+              Mot de passe oublié ?
+            </Link>
+          </div>
           {error && <p className="text-sm text-rose">{error}</p>}
-
           <Button type="submit" loading={loading} className="w-full">
             Se connecter
           </Button>

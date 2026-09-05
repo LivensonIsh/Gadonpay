@@ -107,7 +107,9 @@ export default function ProjectsPage() {
               >
                 <div>
                   <p className="text-sm text-text">{p.name}</p>
-                  <p className="font-mono text-xs text-faint">{p.apiKeyPrefix}...</p>
+                  <p className="font-mono text-xs text-faint">
+                     Projet #{p.displayNumber} · {p.apiKeyPrefix}...
+                  </p>
                 </div>
                 <span className="text-xs text-muted">{formatDate(p.createdAt)}</span>
               </Link>
