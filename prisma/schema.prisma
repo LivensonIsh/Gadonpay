@@ -1,6 +1,6 @@
 // GadonPay — Schéma de données
 // Aligné sur la spécification technique v1.0, section 15.2
-// Principe : GadonPay ne détient jamais de fonds. Ce schéma ne contient donc
+// Principe :  GadonPay ne détient jamais de fonds. Ce schéma ne contient donc
 // aucune notion de solde/balance/settlement détenu par la plateforme — voir
 // "LogEntry" (journal d'audit append-only) au lieu d'un ledger financier.
 
